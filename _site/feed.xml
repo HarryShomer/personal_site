@@ -1,0 +1,476 @@
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.7.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2018-09-21T11:55:50-04:00</updated><id>http://localhost:4000/</id><title type="html">Harry Shomer</title><subtitle></subtitle><entry><title type="html">Predicting Individual NHL Games</title><link href="http://localhost:4000/2018/09/21/nhl-game-prediction-model.html" rel="alternate" type="text/html" title="Predicting Individual NHL Games" /><published>2018-09-21T00:00:00-04:00</published><updated>2018-09-21T00:00:00-04:00</updated><id>http://localhost:4000/2018/09/21/nhl-game-prediction-model</id><content type="html" xml:base="http://localhost:4000/2018/09/21/nhl-game-prediction-model.html">&lt;p&gt;The topic of predicting individual hockey games is one that many find interesting and others 
+find very useful. It is also a very hard. Josh Weissbock has &lt;a href=&quot;https://ruor.uottawa.ca/bitstream/10393/31553/3/Weissbock_Joshua_2014_thesis.pdf&quot;&gt;suggested&lt;/a&gt; 
+that a model can theoretically, at best, predict 62% of NHL games correctly. The difficulty in correctly
+predicting the outcomes of games is important to keep in mind when evaluating mine and other’s
+models.&lt;/p&gt;
+
+&lt;p&gt;This topic is also one that contains a fair amount of previous scholarship. Emmanuel Perry has 
+&lt;a href=&quot;https://www.corsicahockey.com/corsica-predictions-explained&quot;&gt;written about his model&lt;/a&gt; that
+drives the predictions on his site &lt;a href=&quot;http://corsica.hockey/&quot;&gt;Corsica&lt;/a&gt;. Micah Blake McCurdy has also
+&lt;a href=&quot;http://hockeyviz.com/txt/edgar&quot;&gt;developed&lt;/a&gt; a succession of different models over the past few seasons. 
+Lastly, MoneyPuck has &lt;a href=&quot;http://moneypuck.com/about.htm&quot;&gt;written&lt;/a&gt; as his model as well.
+I recommend everyone to take the and read the previous work done of the subject before 
+continuing. Many of the ideas here I derived from these works and some will be referenced
+in this piece as well.&lt;/p&gt;
+
+&lt;p&gt;In order to tackle this problem I decided to create two different models using the data
+from 2007-2017. One would focus on the broad team statistics for both teams. The second would focus 
+just on the players who  are slated to play for both teams in that given game. The outputs of both 
+will then be combined into a final model. So we make two separate sub-models and our final
+model will be some combination of the two.&lt;/p&gt;
+
+&lt;h2 id=&quot;team-model&quot;&gt;Team Model&lt;/h2&gt;
+
+&lt;p&gt;The following features were used in the model for each team:&lt;/p&gt;
+
+&lt;p&gt;Even-Strength&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Unblocked Shots For Per 60 Minutes&lt;/li&gt;
+  &lt;li&gt;Unblocked Shots Against Per 60 Minutes&lt;/li&gt;
+  &lt;li&gt;Expected Shooting Percentage on Unblocked shots For&lt;/li&gt;
+  &lt;li&gt;Expected Shooting Percentage on Unblocked shots Against&lt;/li&gt;
+  &lt;li&gt;Shooting percentage / Expected Shooting Percentage on Unblocked shots For&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Power Play&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Unblocked Shots For Per 60 Minutes&lt;/li&gt;
+  &lt;li&gt;Expected Shooting Percentage on Unblocked shots For&lt;/li&gt;
+  &lt;li&gt;Shooting percentage / Expected Shooting Percentage on Unblocked shots For&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Penalty Kill&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Unblocked Shots Against Per 60 Minutes&lt;/li&gt;
+  &lt;li&gt;Expected Shooting Percentage on Unblocked shots Against&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;All Situations&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Penalties Taken Per 60 Minutes&lt;/li&gt;
+  &lt;li&gt;Penalties Drawn Per 60 Minutes&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Misc.&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Probability of home team winning given Elo Ratings&lt;/li&gt;
+  &lt;li&gt;Days of Rest for Team&lt;/li&gt;
+  &lt;li&gt;If the Starting Goalie played in back to back (played in a game the previous day)&lt;/li&gt;
+  &lt;li&gt;Fsv% - xFsv% - Goalie Marcels (only Even-Strength)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;One thing you may notice is that some stats are per 60 minutes. This is a way of standardizing
+these numbers across different teams. Each team plays a different amount of time at each
+strength so some teams have more opportunities than others (which would happen on a count
+or per game basis). So per 60 allows us to properly compare the numbers among two different
+teams.&lt;/p&gt;
+
+&lt;p&gt;Next, you may see that each strength has different numbers included for each. Concerning 
+Even-Strength, I tried to model in a way that made sense to me. On the offensive side, we 
+want to see: How many shots a team generates, what’s the average expected probability of those shots 
+with the probability computed by a &lt;a href=&quot;https://github.com/HarryShomer/xG-Model&quot;&gt;expected goal model&lt;/a&gt;,
+and how much better or worse their sh% was than expected. For defense, we also care about
+how many shots a team gives up and what the average expected probability of those shots.
+But the last metric, how much better/worse than expected, will be handled by including the 
+goalie stats later. So it’s not included in that form.&lt;/p&gt;
+
+&lt;p&gt;For the power play and penalty kill we only examine the stats that are most pertinent to 
+the team in question in that situation. On the power play, how a team does defensively 
+is a distant second to how well they generate offense (and vice-versa for the penalty kill).
+So for the power play we include the three offensive stats listed in the last paragraph and
+for the penalty kill just the two defensive one’s.&lt;/p&gt;
+
+&lt;p&gt;Some of you may be wondering how we account for goalie quality. What’s Fsv% - xFsv%?
+And what does marcels means? Let’s answer this one at a time.&lt;/p&gt;
+
+&lt;p&gt;Fsv% stands for Fenwick Save Percentage which is another way of saying Unblocked Shot Save
+Percentage. So instead of just looking at shots on goal we look at all unblocked shots. This 
+is done as there is reason to believe that &lt;a href=&quot;http://fooledbygrittiness.blogspot.com/2017/02/a-few-stuff-about-miss.html&quot;&gt;goalies can effect&lt;/a&gt;
+the rate at which shots miss the net. Next, xFsv% just means expected Fsv%. With the expected
+probability gotten from my previously mentioned expected goal model. The logic here is that
+we want to see which goalies are doing better/worse than what we expect.&lt;/p&gt;
+
+&lt;p&gt;Marcels, is a simple &lt;a href=&quot;https://www.baseball-reference.com/about/marcels.shtml&quot;&gt;projection system created&lt;/a&gt; 
+by Sabermetrician Tom Tango. The mechanics of how it works is beyond the scope of this post
+but it’s a very simple way of projecting how a player will do (and by extension giving a
+best guess at how good a player currently is). Marcels works by weighting past seasons
+(traditionally 3 is used but I used 4 because goalie data is rather random), regressing 
+towards the mean, and applying a simple aging curve.&lt;sup&gt;&lt;a href=&quot;#footnote1&quot;&gt;1&lt;/a&gt;&lt;/sup&gt;&lt;/p&gt;
+
+&lt;h1 id=&quot;team-elo-ratings&quot;&gt;Team Elo Ratings&lt;/h1&gt;
+
+&lt;p&gt;You may have noticed the feature “Probability of home team winning given Elo Ratings” in
+the Misc. category. I think it is worth the time to talk about this in more depth. 
+Elo is a popular &lt;a href=&quot;https://en.wikipedia.org/wiki/Elo_rating_system&quot;&gt;chess measure&lt;/a&gt; which have
+been used in many other settings. It has been used in hockey by both &lt;a href=&quot;http://hockeyanalytics.com/2016/07/elo-ratings-for-the-nhl/&quot;&gt;Alan Ryder&lt;/a&gt;
+and recently by &lt;a href=&quot;http://crowdscoutsports.com/team_elo.php&quot;&gt;Cole Anderson&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;Elo ratings work by starting off each team at a score of 1500. They then gain/lose points
+by winning or losing games. The amount they win/lose depends on the ratings of both teams 
+and a constant K. The value of this constant depends on competition we are looking at.&lt;/p&gt;
+
+&lt;p&gt;We can derive the probability of one team winning based on their elo ratings with the 
+formula:&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;get_home_prob&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;game&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;team_elo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;s&quot;&gt;&quot;&quot;&quot;
+    Get the probability that the home team will win for a given game
+    
+    Home &lt;/span&gt;&lt;span class=&quot;si&quot;&gt;% &lt;/span&gt;&lt;span class=&quot;s&quot;&gt;of Winning = 1 / (1 + 10^(dr/400)) ; dr = Away_Elo - Home_Elo
+    
+    :param game: Dict with home and away team data for that game
+    :param team_elo: Dict of Elo Ratings
+    
+    :return probability of home team winning
+    &quot;&quot;&quot;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;home_advantage&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mf&quot;&gt;33.5&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;dr&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;team_elo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;game&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'Opponent'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;team_elo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;game&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'Team'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;home_advantage&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;**&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dr&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;400&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;You can see there is also an extra term in there to account for the advantage home teams have.
+The number 33.5 can be found by using the equation referenced above and the fact that we know 
+the historical home win% from 2007 is 54.8%. We can solve for the difference in ratings 
+this translates to - which is 33.5. So the home team, on average, tends to look 33.5 points
+better than they actually are.&lt;/p&gt;
+
+&lt;p&gt;But, as mentioned still need K factor and a way to update these ratings after every game. 
+Based on &lt;a href=&quot;http://crowdscoutsports.com/team_elo.php&quot;&gt;Cole Anderson’s work&lt;/a&gt; we use the following 
+equation:&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;update_elo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;game&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;team_elo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;s&quot;&gt;&quot;&quot;&quot;
+    Update the elo ratings for both teams after a game
+    
+    :param game: Dict with home and away team data for that game
+    :param team_elo: Dict of Elo Ratings
+    
+    :return Dict with updated elo ratings
+    &quot;&quot;&quot;&lt;/span&gt;
+    &lt;span class=&quot;c&quot;&gt;# k is the constant for how much the ratings should change from this game&lt;/span&gt;
+    &lt;span class=&quot;c&quot;&gt;# GD = Goal Differential&lt;/span&gt;
+    &lt;span class=&quot;c&quot;&gt;# Subtracted by 2 if the game went to a shootout&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;k_rating&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;game&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'GD'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;game&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'if_shootout'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+    &lt;span class=&quot;c&quot;&gt;# New Rating = Old Rating + k * (actual - expected)&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;elo_change&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;k_rating&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;game&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'if_home_win'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;game&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'home_prob'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;team_elo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;game&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'home_team'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;elo_change&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;team_elo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;game&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'away_team'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;elo_change&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;team_elo&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;So the K factor is a function of the goal differential and if the game went to a shootout.
+The higher the goal differential, the more sure we are the one team is better or worse 
+than the other. And, if the game goes to a shootout we subtract by 2 since it signifies that
+the teams may be more evenly matched.&lt;/p&gt;
+
+&lt;p&gt;Lastly, before each season I regressed the elo ratings of each team 50% of the way towards
+the mean. This is done to account for roster and player changes.&lt;/p&gt;
+
+&lt;p&gt;I originally meant to include the elo derived probability as a separate from the 
+player and team models. But, after some testing I found that including it as part of the
+team model performed better. I think this makes sense because at the end of the day elo
+ratings are essentially just another way of valuing team performance.&lt;/p&gt;
+
+&lt;h1 id=&quot;weighting-team-stats&quot;&gt;Weighting Team Stats&lt;/h1&gt;
+
+&lt;p&gt;I still think there is one thing that is unclear. For the few stats in the Misc. category,
+it’s easy to see the data used. Probability given the elo ratings uses the current ratings,
+days of rest checks the schedule, goalie b2b checks the schedule and if the goalie played,
+and goalie marcels uses the numbers from the past few years. But, what about all the other 
+stats? For example, what data is used for ‘Penalties Taken Per 60 Minutes’? Is it just 
+that season, the past two seasons, the past 25 games?&lt;/p&gt;
+
+&lt;p&gt;What I chose to do what as follows (this applies to all stats under the Even-Strength, Power Play,
+Penalty Kill, and All Situations categories): For a given season, we calculate the stats for every 
+game for every team. Then for a game n in that season we get all the games before that given
+game (from 1 to n-1) for that season. So for a game played on December 5th between NYR and MTL, 
+we get the stats for all the previous games for each team that season before December 5th. 
+The question now is how do we combine them. Do we just take the mean for each stat and call it a day?&lt;/p&gt;
+
+&lt;p&gt;Well, I thought about it and decided to weight them exponentially by the equation e^-.05x, 
+where x is the number of games between the game we are weighting and the game we are currently
+trying to predict. This logic here is similar to how MoneyPuck handles it, thought his weighting 
+system is different. Also, for those interested, I arrived at this value of -.05 through some
+guesswork and trial and error. Below are some examples of the weights:&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;math&lt;/span&gt;
+	
+    &lt;span class=&quot;c&quot;&gt;# Get the weights for games 0 - 81&lt;/span&gt;
+    &lt;span class=&quot;c&quot;&gt;# 0 here means when the game being weighed was the previous game (so there are&lt;/span&gt;
+    &lt;span class=&quot;c&quot;&gt;# 0 games in between that game and the current game we are predicting)&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;&amp;gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;season_weights&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;round&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;math&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;e&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;**&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-.&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;05&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;range&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;82&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)]&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;&amp;gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;season_weights&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;mf&quot;&gt;1.0&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;&amp;gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;season_weights&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;61&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;&amp;gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;season_weights&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;30&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;22&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;&amp;gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;season_weights&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;50&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;08&lt;/span&gt;
+    &lt;span class=&quot;c&quot;&gt;# The weight here is how much the first game of the season matters when trying to &lt;/span&gt;
+    &lt;span class=&quot;c&quot;&gt;# predict the last game of the season (82 - 1 = 81). As you can see, for the 82nd game &lt;/span&gt;
+    &lt;span class=&quot;c&quot;&gt;# how a team did in the first game that season doesn't really matter. &lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;&amp;gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;season_weights&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;81&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;02&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;There’s still one issue though. What about the first game of the season? We have no prior
+games there? Also, in general, for games early in the season we don’t have a lot of data to go one.
+So how do we handle this?&lt;/p&gt;
+
+&lt;p&gt;I thought about it and decided to include previous season stats when a team has played less
+than 25 games that season. The number 25 is gotten from the fact that a lot of team stats
+peak in predictivity at around the 25 game mark (check out the team section &lt;a href=&quot;http://fooledbygrittiness.blogspot.com/2018/03/evaluating-my-shooter-xg-model.html&quot;&gt;here&lt;/a&gt;).
+The equation we use to weight how much the previous stats matter is e^-.175x, where x is 
+the games played so far that season. Some examples:&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;math&lt;/span&gt;
+    &lt;span class=&quot;c&quot;&gt;# x represents how many games were played in that year&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;&amp;gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;prev_season_weights&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;round&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;math&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;e&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;**&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;175&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;range&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;24&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)]&lt;/span&gt;
+    &lt;span class=&quot;c&quot;&gt;# Since we played no games so far, the previous season counts as 100%&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;&amp;gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;prev_season_weights&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;mf&quot;&gt;1.0&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;&amp;gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;prev_season_weights&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;42&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;&amp;gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;prev_season_weights&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;12&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;12&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;&amp;gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;prev_season_weights&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;23&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mo&quot;&gt;02&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;As you can see (and just tell from the equation itself) this decays much quicker than our
+game equation. This is by design as we don’t want last season’s numbers to matter too much. 
+All we need it for is a little boost in the beginning.&lt;/p&gt;
+
+&lt;h2 id=&quot;player-model&quot;&gt;Player Model&lt;/h2&gt;
+
+&lt;p&gt;This model contains the following features for each team:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Game Score Marcels for Forwards 1-12&lt;/li&gt;
+  &lt;li&gt;Game Score Marcels for Defensemen 1-6&lt;/li&gt;
+  &lt;li&gt;Goalie Marcels for Starter &amp;amp; Backup&lt;/li&gt;
+  &lt;li&gt;If the Starting Goalie played in back to back (played in a game the previous day)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;To represent a single number value for each skater I decided to use game score developed by 
+&lt;a href=&quot;https://hockey-graphs.com/2016/07/13/measuring-single-game-productivity-an-introduction-to-game-score/&quot;&gt;Dom Luszczyszyn&lt;/a&gt;. 
+Game Score takes a bunch of different stats, weights them, and combines them into one single
+number. The higher the game score the better. Many will point out that this may not be the
+best way of determining the value of a single player, but it has the advantage of being both
+easy to understand and to calculate so I chose it here (Note: Dom has also posted game 
+probabilities in the past using a model which I’m pretty sure uses game score. So it may 
+be similar to what I have here).&lt;/p&gt;
+
+&lt;p&gt;So for each game we calculate the game score marcels for each forward and defensemen for 
+both teams only using data from prior to that game.&lt;sup&gt;&lt;a href=&quot;#footnote2&quot;&gt;2&lt;/a&gt;&lt;/sup&gt; The question though is how do we order the skaters in our model. For each team our 
+model takes 20 player inputs (12 forwards, 6 defensemen, 2 goalies) so we need a way of 
+organizing them into some order. To deal with this I chose to follow a similar method to 
+Emmanuel Perry in his previously mentioned model. He chose to rank them in decreasing
+order of time on ice played in the past 5 games by position. Instead of just using the last 
+5 games I chose to create a time on ice projection using a marcels based model.&lt;sup&gt;&lt;a href=&quot;#footnote3&quot;&gt;3&lt;/a&gt;&lt;/sup&gt; 
+I then ranked them in terms of decreasing projected time on ice by forward, defensemen, and the
+goalies (with there being 12 forwards, 6 defensemen, and 2 goalies). So the forward with 
+the 7th highest projected time on ice for his team is slotted in as the 7th of 20 players, the 3rd 
+highest defensemen is the 15th (12+3), and the backup goalie is the 20th.&lt;/p&gt;
+
+&lt;p&gt;An issue we run into this is when there isn’t 12 forwards or 6 defensemen dressed for that 
+game. Every now and then teams dress 11 forwards and 7 defensemen or 13 forwards and 5 defensemen
+(also, crucially, the NHL game rosters used to determine which players dressed for that game
+makes mistakes so we see some weird stuff here and there). This isn’t a common occurence
+so I chose to deal with it by simply shuffling the player to the other position. So, if 
+11 forwards were dressed the defensemen with the lowest projected time on ice is placed
+as the 12th forward. Not the cleanest methodology, but I’m sure it’s fine.&lt;/p&gt;
+
+&lt;h2 id=&quot;fitting-the-sub-models&quot;&gt;Fitting the Sub-Models&lt;/h2&gt;
+
+&lt;p&gt;So far we have listed the features used for both models, so now is the time to see how we
+are going to use those features to create a model. Before we fit anything though we need to
+get the data in the way we want it.&lt;/p&gt;
+
+&lt;p&gt;For both models, we standardized all the relevant features for that model (below is just
+how it is done for the teams).&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;get_team_features&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;df&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;s&quot;&gt;&quot;&quot;&quot;
+    Get the features for the team model
+
+    :param df: Team df of all features and labels
+
+    :return: features
+    &quot;&quot;&quot;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;continuous_vars&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'FA60_even_Opponent'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'FA60_even_Team'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                       &lt;span class=&quot;s&quot;&gt;'FA60_pk_Opponent'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'FA60_pk_Team'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                       &lt;span class=&quot;s&quot;&gt;'FF60_even_Opponent'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'FF60_even_Team'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                       &lt;span class=&quot;s&quot;&gt;'FF60_pp_Opponent'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'FF60_pp_Team'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                       &lt;span class=&quot;s&quot;&gt;'GF60/xGF60_even_Opponent'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'GF60/xGF60_even_Team'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                       &lt;span class=&quot;s&quot;&gt;'GF60/xGF60_pp_Opponent'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'GF60/xGF60_pp_Team'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                       &lt;span class=&quot;s&quot;&gt;'PEND60_Opponent'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'PEND60_Team'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                       &lt;span class=&quot;s&quot;&gt;'PENT60_Opponent'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'PENT60_Team'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                       &lt;span class=&quot;s&quot;&gt;'xGA60/FA60_even_Opponent'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'xGA60/FA60_even_Team'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                       &lt;span class=&quot;s&quot;&gt;'xGA60/FA60_pk_Opponent'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'xGA60/FA60_pk_Team'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                       &lt;span class=&quot;s&quot;&gt;'xGF60/FF60_even_Opponent'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'xGF60/FF60_even_Team'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                       &lt;span class=&quot;s&quot;&gt;'xGF60/FF60_pp_Opponent'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'xGF60/FF60_pp_Team'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                       &lt;span class=&quot;s&quot;&gt;'days_rest_home'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'days_rest_away'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+                       &lt;span class=&quot;s&quot;&gt;'home_adj_fsv'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'away_adj_fsv'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+
+    &lt;span class=&quot;n&quot;&gt;non_scaled&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'elo_prob'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;dummies&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'home_b2b'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'away_b2b'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+
+    &lt;span class=&quot;c&quot;&gt;# Switch it over -&amp;gt; Don't want to overwrite anything&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;df_scaled&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;df&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;continuous_vars&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;non_scaled&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dummies&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+
+    &lt;span class=&quot;c&quot;&gt;# Scale only continuous vars&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;scaler&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;StandardScaler&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fit&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;df_scaled&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;continuous_vars&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;df_scaled&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;continuous_vars&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;scaler&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;transform&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;df_scaled&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;continuous_vars&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])&lt;/span&gt;
+
+    &lt;span class=&quot;c&quot;&gt;# Save Scaler&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;pickle&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dump&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;scaler&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;open&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;team_scaler.pkl&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'wb'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;df_scaled&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;continuous_vars&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;non_scaled&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dummies&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;values&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;tolist&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;I then randomly split the data into a training and test set using our full dataset (which as
+mentioned earlier is 2008-2009 to 2017-2018). I chose to use 75% of the data for training and 25% for testing.
+After that we can then fit our model using the training data and test how it does on the training set.&lt;/p&gt;
+
+&lt;p&gt;I chose to fit both models using bagged logistic regressions. Well, I didn’t really choose
+that off the bat. I tried a bunch of different techniques for each model (xgBoost, Random
+Forest…etc.) but at the end of the day a bagged logistic regression worked best for both.
+I found that interesting.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://en.wikipedia.org/wiki/Bootstrap_aggregating&quot;&gt;Bagged&lt;/a&gt; here means that it uses the 
+concept of Bagging. Bagging is when random subsets of a dataset are used to create many different models. 
+We then use the average prediction of all these models as our final answer. So here we 
+made many different logistic regressions using random subsets of the training data. Then each 
+of these logistic regressions combined (their outputs are averaged) to form one model.&lt;/p&gt;
+
+&lt;p&gt;We can now fit and test each model using the code below:&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;train_test_clf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;clf_type&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;features&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;labels&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;s&quot;&gt;&quot;&quot;&quot;
+    Train the data on specific classifier. Then test how it does. 
+
+    :param clf_type: Type of Classifier we are using
+    :param features: Vars for model
+    :param labels: What we are predicting
+
+    :return: Trained Classifier
+    &quot;&quot;&quot;&lt;/span&gt;
+    &lt;span class=&quot;c&quot;&gt;# 75/25 Split&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;features_train&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;features_test&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;labels_train&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;labels_test&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;train_test_split&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;features&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;labels&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;test_size&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;25&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;random_state&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;36&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+    &lt;span class=&quot;c&quot;&gt;# Fix Data&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;features_train&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;labels_train&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;np&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;array&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;features_train&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;np&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;array&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;labels_train&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ravel&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+    
+    &lt;span class=&quot;c&quot;&gt;# Set up CV&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;param_grid&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'n_estimators'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;range&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;22&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)}&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;clf_type&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;BaggingClassifier&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;LogisticRegression&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;penalty&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'l1'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;solver&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'liblinear'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;random_state&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;36&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;random_state&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;36&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+    &lt;span class=&quot;c&quot;&gt;# Tune hyperparameters&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;cv_clf&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;GridSearchCV&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;estimator&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;clf_type&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;param_grid&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;param_grid&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cv&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;verbose&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    
+    &lt;span class=&quot;c&quot;&gt;# Actually fit model&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;cv_clf&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cv_clf_type&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fit&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;features_train&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;labels_train&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    
+    &lt;span class=&quot;c&quot;&gt;# Evaluate how the model performs on the etst set&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;test_probs&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;clf&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;predict_proba&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;features_test&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;Log Loss: &quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;round&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;log_loss&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;labels_test&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;test_probs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;Accuracy:&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;round&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;accuracy_score&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;labels_test&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;round&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;prob&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;prob&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;test_probs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]),&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;This function can fit both the player and team models but, as mentioned before, we want to combine
+their outputs into one model. Each by themself is okay, but the best way to handle this 
+is to leverage the strength of both models and combine them into one.&lt;/p&gt;
+
+&lt;h2 id=&quot;meta-classifier&quot;&gt;Meta-Classifier&lt;/h2&gt;
+
+&lt;p&gt;To fit the meta-classifier we first need to fit both models. Using this we then generate the
+probabilities for each model for each game in our set. Then, using the same training/testing
+sets as before, we fit a logistic regression with the features being the team and player model
+outputs. A logistic regression will help us get the correct weight for each model relative
+to each other.&lt;/p&gt;
+
+&lt;p&gt;So the features (fit using a logistic regression) for the meta-classifier are:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Home Team Prob% - Team Model&lt;/li&gt;
+  &lt;li&gt;Home Team Prob% - Player Model&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;The evaluation metrics spit out for each model on the Test set are:&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;Model&lt;/th&gt;
+      &lt;th style=&quot;text-align: center&quot;&gt;Accuracy&lt;/th&gt;
+      &lt;th style=&quot;text-align: center&quot;&gt;Log Loss&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;Team&lt;/td&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;57.97%&lt;/td&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;.6751&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;Player&lt;/td&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;58.56%&lt;/td&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;.677&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;Meta&lt;/td&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;58.25%&lt;/td&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;.6738&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;p&gt;The main number here is log loss. Accuracy is important but log loss tells us how well
+it does in terms of the probabilities generated and not just whether or not it was correct. 
+And, it clearly is the best for the meta-classifier. Interestingly the team model performs
+better then the player model in log loss (though the opposite is true for accuracy). Each
+model also performs better than just assuming the home team wins (which occurs 54.8% of the
+times).&lt;/p&gt;
+
+&lt;h2 id=&quot;conclusion&quot;&gt;Conclusion&lt;/h2&gt;
+
+&lt;p&gt;In this post we created a model to predict the outcome of a NHL game. Two models were created:
+A model with broader team statistics, and a model focusing on just the players for both teams.
+We then created an ensemble model that fit a logistic regression over the output of both models.
+This final model (and the individual sub-models) perform better than our baseline model (of
+assuming the home team wins).&lt;/p&gt;
+
+&lt;p&gt;There are couple of limitations to my model. The first is it is relatively simple (in my opinion).
+There aren’t really too many features used for both sub-models. One could create much larger feature
+sets for both sub-models which may uncover more hidden patterns. This leads into the second
+criticism, mainly being that the performance is nothing to write home about. To my knowledge 
+(please tell me if I’m wrong), the only publicly available game prediction model with the
+test evaluations recorded is Emmanuel Perry’s model. While I don’t think I could ever achieve
+the success of his model (he is very smart), it does highlight some the weaknesses here. Mainly being
+the smaller feature sets and simple model designs. For example, I could have used stacking
+to increase the performance of each sub-model. I thought about it but I chose to keep it 
+simple. It would be a different story if I planned to actually try to gamble using this 
+model but I don’t plan on it.&lt;/p&gt;
+
+&lt;p&gt;**The code and data used to create the model (Only the final datasets are up there, the initial
+data used to create everything is too much) for the model can be found &lt;a href=&quot;https://github.com/HarryShomer/NHL-Prediction-Model&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;&lt;br /&gt;&lt;br /&gt; 
+&lt;strong&gt;Footnotes:&lt;/strong&gt; 
+&lt;br /&gt;&lt;br /&gt;
+&lt;a name=&quot;footnote1&quot;&gt;1&lt;/a&gt;. I chose to weight previous seasons using the weights 5-4-3-2 (with 5
+being the nearest season). I also chose to regress using 2000 shots. 
+&lt;br /&gt;&lt;br /&gt;
+&lt;a name=&quot;footnote2&quot;&gt;2&lt;/a&gt;. For forwards the weights are 12-4-3 and for defensemen it’s 12-5-3.
+Forwards are regressed 540 minutes while for defensemen it’s 660. 
+&lt;br /&gt;&lt;br /&gt;
+&lt;a name=&quot;footnote3&quot;&gt;3&lt;/a&gt;. For forwards the weights are 9-1-0 and for defensemen it’s 17-2-0.
+Forwards are regressed 370 minutes while for defensemen it’s 710. 
+&lt;br /&gt;&lt;br /&gt;&lt;/p&gt;</content><author><name></name></author><summary type="html">The topic of predicting individual hockey games is one that many find interesting and others find very useful. It is also a very hard. Josh Weissbock has suggested that a model can theoretically, at best, predict 62% of NHL games correctly. The difficulty in correctly predicting the outcomes of games is important to keep in mind when evaluating mine and other’s models.</summary></entry></feed>

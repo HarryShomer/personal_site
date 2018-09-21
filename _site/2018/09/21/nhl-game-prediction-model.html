@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.5.0 -->
+<title>Predicting Individual NHL Games | Harry Shomer</title>
+<meta name="generator" content="Jekyll v3.7.3" />
+<meta property="og:title" content="Predicting Individual NHL Games" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="The topic of predicting individual hockey games is one that many find interesting and others find very useful. It is also a very hard. Josh Weissbock has suggested that a model can theoretically, at best, predict 62% of NHL games correctly. The difficulty in correctly predicting the outcomes of games is important to keep in mind when evaluating mine and other’s models." />
+<meta property="og:description" content="The topic of predicting individual hockey games is one that many find interesting and others find very useful. It is also a very hard. Josh Weissbock has suggested that a model can theoretically, at best, predict 62% of NHL games correctly. The difficulty in correctly predicting the outcomes of games is important to keep in mind when evaluating mine and other’s models." />
+<link rel="canonical" href="http://localhost:4000/2018/09/21/nhl-game-prediction-model.html" />
+<meta property="og:url" content="http://localhost:4000/2018/09/21/nhl-game-prediction-model.html" />
+<meta property="og:site_name" content="Harry Shomer" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2018-09-21T00:00:00-04:00" />
+<script type="application/ld+json">
+{"description":"The topic of predicting individual hockey games is one that many find interesting and others find very useful. It is also a very hard. Josh Weissbock has suggested that a model can theoretically, at best, predict 62% of NHL games correctly. The difficulty in correctly predicting the outcomes of games is important to keep in mind when evaluating mine and other’s models.","headline":"Predicting Individual NHL Games","dateModified":"2018-09-21T00:00:00-04:00","datePublished":"2018-09-21T00:00:00-04:00","@type":"BlogPosting","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2018/09/21/nhl-game-prediction-model.html"},"url":"http://localhost:4000/2018/09/21/nhl-game-prediction-model.html","@context":"http://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="Harry Shomer" /></head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">Harry Shomer</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger">
+		
+		<a href="/projects">Projects</a>
+		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+		
+		<!--
+		<a href="/CV.pdf">CV</a>
+		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+		-->		
+
+		<a href="/about">About</a>	
+	        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	
+        </div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">Predicting Individual NHL Games</h1>
+    <p class="post-meta">
+      <time class="dt-published" datetime="2018-09-21T00:00:00-04:00" itemprop="datePublished">Sep 21, 2018
+      </time></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <p>The topic of predicting individual hockey games is one that many find interesting and others 
+find very useful. It is also a very hard. Josh Weissbock has <a href="https://ruor.uottawa.ca/bitstream/10393/31553/3/Weissbock_Joshua_2014_thesis.pdf">suggested</a> 
+that a model can theoretically, at best, predict 62% of NHL games correctly. The difficulty in correctly
+predicting the outcomes of games is important to keep in mind when evaluating mine and other’s
+models.</p>
+
+<p>This topic is also one that contains a fair amount of previous scholarship. Emmanuel Perry has 
+<a href="https://www.corsicahockey.com/corsica-predictions-explained">written about his model</a> that
+drives the predictions on his site <a href="http://corsica.hockey/">Corsica</a>. Micah Blake McCurdy has also
+<a href="http://hockeyviz.com/txt/edgar">developed</a> a succession of different models over the past few seasons. 
+Lastly, MoneyPuck has <a href="http://moneypuck.com/about.htm">written</a> as his model as well.
+I recommend everyone to take the and read the previous work done of the subject before 
+continuing. Many of the ideas here I derived from these works and some will be referenced
+in this piece as well.</p>
+
+<p>In order to tackle this problem I decided to create two different models using the data
+from 2007-2017. One would focus on the broad team statistics for both teams. The second would focus 
+just on the players who  are slated to play for both teams in that given game. The outputs of both 
+will then be combined into a final model. So we make two separate sub-models and our final
+model will be some combination of the two.</p>
+
+<h2 id="team-model">Team Model</h2>
+
+<p>The following features were used in the model for each team:</p>
+
+<p>Even-Strength</p>
+<ul>
+  <li>Unblocked Shots For Per 60 Minutes</li>
+  <li>Unblocked Shots Against Per 60 Minutes</li>
+  <li>Expected Shooting Percentage on Unblocked shots For</li>
+  <li>Expected Shooting Percentage on Unblocked shots Against</li>
+  <li>Shooting percentage / Expected Shooting Percentage on Unblocked shots For</li>
+</ul>
+
+<p>Power Play</p>
+<ul>
+  <li>Unblocked Shots For Per 60 Minutes</li>
+  <li>Expected Shooting Percentage on Unblocked shots For</li>
+  <li>Shooting percentage / Expected Shooting Percentage on Unblocked shots For</li>
+</ul>
+
+<p>Penalty Kill</p>
+<ul>
+  <li>Unblocked Shots Against Per 60 Minutes</li>
+  <li>Expected Shooting Percentage on Unblocked shots Against</li>
+</ul>
+
+<p>All Situations</p>
+<ul>
+  <li>Penalties Taken Per 60 Minutes</li>
+  <li>Penalties Drawn Per 60 Minutes</li>
+</ul>
+
+<p>Misc.</p>
+<ul>
+  <li>Probability of home team winning given Elo Ratings</li>
+  <li>Days of Rest for Team</li>
+  <li>If the Starting Goalie played in back to back (played in a game the previous day)</li>
+  <li>Fsv% - xFsv% - Goalie Marcels (only Even-Strength)</li>
+</ul>
+
+<p>One thing you may notice is that some stats are per 60 minutes. This is a way of standardizing
+these numbers across different teams. Each team plays a different amount of time at each
+strength so some teams have more opportunities than others (which would happen on a count
+or per game basis). So per 60 allows us to properly compare the numbers among two different
+teams.</p>
+
+<p>Next, you may see that each strength has different numbers included for each. Concerning 
+Even-Strength, I tried to model in a way that made sense to me. On the offensive side, we 
+want to see: How many shots a team generates, what’s the average expected probability of those shots 
+with the probability computed by a <a href="https://github.com/HarryShomer/xG-Model">expected goal model</a>,
+and how much better or worse their sh% was than expected. For defense, we also care about
+how many shots a team gives up and what the average expected probability of those shots.
+But the last metric, how much better/worse than expected, will be handled by including the 
+goalie stats later. So it’s not included in that form.</p>
+
+<p>For the power play and penalty kill we only examine the stats that are most pertinent to 
+the team in question in that situation. On the power play, how a team does defensively 
+is a distant second to how well they generate offense (and vice-versa for the penalty kill).
+So for the power play we include the three offensive stats listed in the last paragraph and
+for the penalty kill just the two defensive one’s.</p>
+
+<p>Some of you may be wondering how we account for goalie quality. What’s Fsv% - xFsv%?
+And what does marcels means? Let’s answer this one at a time.</p>
+
+<p>Fsv% stands for Fenwick Save Percentage which is another way of saying Unblocked Shot Save
+Percentage. So instead of just looking at shots on goal we look at all unblocked shots. This 
+is done as there is reason to believe that <a href="http://fooledbygrittiness.blogspot.com/2017/02/a-few-stuff-about-miss.html">goalies can effect</a>
+the rate at which shots miss the net. Next, xFsv% just means expected Fsv%. With the expected
+probability gotten from my previously mentioned expected goal model. The logic here is that
+we want to see which goalies are doing better/worse than what we expect.</p>
+
+<p>Marcels, is a simple <a href="https://www.baseball-reference.com/about/marcels.shtml">projection system created</a> 
+by Sabermetrician Tom Tango. The mechanics of how it works is beyond the scope of this post
+but it’s a very simple way of projecting how a player will do (and by extension giving a
+best guess at how good a player currently is). Marcels works by weighting past seasons
+(traditionally 3 is used but I used 4 because goalie data is rather random), regressing 
+towards the mean, and applying a simple aging curve.<sup><a href="#footnote1">1</a></sup></p>
+
+<h1 id="team-elo-ratings">Team Elo Ratings</h1>
+
+<p>You may have noticed the feature “Probability of home team winning given Elo Ratings” in
+the Misc. category. I think it is worth the time to talk about this in more depth. 
+Elo is a popular <a href="https://en.wikipedia.org/wiki/Elo_rating_system">chess measure</a> which have
+been used in many other settings. It has been used in hockey by both <a href="http://hockeyanalytics.com/2016/07/elo-ratings-for-the-nhl/">Alan Ryder</a>
+and recently by <a href="http://crowdscoutsports.com/team_elo.php">Cole Anderson</a>.</p>
+
+<p>Elo ratings work by starting off each team at a score of 1500. They then gain/lose points
+by winning or losing games. The amount they win/lose depends on the ratings of both teams 
+and a constant K. The value of this constant depends on competition we are looking at.</p>
+
+<p>We can derive the probability of one team winning based on their elo ratings with the 
+formula:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">get_home_prob</span><span class="p">(</span><span class="n">game</span><span class="p">,</span> <span class="n">team_elo</span><span class="p">):</span>
+    <span class="s">"""
+    Get the probability that the home team will win for a given game
+    
+    Home </span><span class="si">% </span><span class="s">of Winning = 1 / (1 + 10^(dr/400)) ; dr = Away_Elo - Home_Elo
+    
+    :param game: Dict with home and away team data for that game
+    :param team_elo: Dict of Elo Ratings
+    
+    :return probability of home team winning
+    """</span>
+    <span class="n">home_advantage</span> <span class="o">=</span> <span class="mf">33.5</span>
+    <span class="n">dr</span> <span class="o">=</span> <span class="n">team_elo</span><span class="p">[</span><span class="n">game</span><span class="p">[</span><span class="s">'Opponent'</span><span class="p">]]</span> <span class="o">-</span> <span class="p">(</span><span class="n">team_elo</span><span class="p">[</span><span class="n">game</span><span class="p">[</span><span class="s">'Team'</span><span class="p">]]</span> <span class="o">+</span> <span class="n">home_advantage</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="n">dr</span><span class="o">/</span><span class="mi">400</span><span class="p">))</span>
+</code></pre></div></div>
+
+<p>You can see there is also an extra term in there to account for the advantage home teams have.
+The number 33.5 can be found by using the equation referenced above and the fact that we know 
+the historical home win% from 2007 is 54.8%. We can solve for the difference in ratings 
+this translates to - which is 33.5. So the home team, on average, tends to look 33.5 points
+better than they actually are.</p>
+
+<p>But, as mentioned still need K factor and a way to update these ratings after every game. 
+Based on <a href="http://crowdscoutsports.com/team_elo.php">Cole Anderson’s work</a> we use the following 
+equation:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">update_elo</span><span class="p">(</span><span class="n">game</span><span class="p">,</span> <span class="n">team_elo</span><span class="p">):</span>
+    <span class="s">"""
+    Update the elo ratings for both teams after a game
+    
+    :param game: Dict with home and away team data for that game
+    :param team_elo: Dict of Elo Ratings
+    
+    :return Dict with updated elo ratings
+    """</span>
+    <span class="c"># k is the constant for how much the ratings should change from this game</span>
+    <span class="c"># GD = Goal Differential</span>
+    <span class="c"># Subtracted by 2 if the game went to a shootout</span>
+    <span class="n">k_rating</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">+</span> <span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">game</span><span class="p">[</span><span class="s">'GD'</span><span class="p">])</span> <span class="o">-</span> <span class="p">(</span><span class="n">game</span><span class="p">[</span><span class="s">'if_shootout'</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="c"># New Rating = Old Rating + k * (actual - expected)</span>
+    <span class="n">elo_change</span> <span class="o">=</span> <span class="n">k_rating</span> <span class="o">*</span> <span class="p">(</span><span class="n">game</span><span class="p">[</span><span class="s">'if_home_win'</span><span class="p">]</span> <span class="o">-</span> <span class="n">game</span><span class="p">[</span><span class="s">'home_prob'</span><span class="p">])</span>
+    <span class="n">team_elo</span><span class="p">[</span><span class="n">game</span><span class="p">[</span><span class="s">'home_team'</span><span class="p">]]</span> <span class="o">+=</span> <span class="n">elo_change</span>
+    <span class="n">team_elo</span><span class="p">[</span><span class="n">game</span><span class="p">[</span><span class="s">'away_team'</span><span class="p">]]</span> <span class="o">-=</span> <span class="n">elo_change</span>
+
+    <span class="k">return</span> <span class="n">team_elo</span>
+</code></pre></div></div>
+
+<p>So the K factor is a function of the goal differential and if the game went to a shootout.
+The higher the goal differential, the more sure we are the one team is better or worse 
+than the other. And, if the game goes to a shootout we subtract by 2 since it signifies that
+the teams may be more evenly matched.</p>
+
+<p>Lastly, before each season I regressed the elo ratings of each team 50% of the way towards
+the mean. This is done to account for roster and player changes.</p>
+
+<p>I originally meant to include the elo derived probability as a separate from the 
+player and team models. But, after some testing I found that including it as part of the
+team model performed better. I think this makes sense because at the end of the day elo
+ratings are essentially just another way of valuing team performance.</p>
+
+<h1 id="weighting-team-stats">Weighting Team Stats</h1>
+
+<p>I still think there is one thing that is unclear. For the few stats in the Misc. category,
+it’s easy to see the data used. Probability given the elo ratings uses the current ratings,
+days of rest checks the schedule, goalie b2b checks the schedule and if the goalie played,
+and goalie marcels uses the numbers from the past few years. But, what about all the other 
+stats? For example, what data is used for ‘Penalties Taken Per 60 Minutes’? Is it just 
+that season, the past two seasons, the past 25 games?</p>
+
+<p>What I chose to do what as follows (this applies to all stats under the Even-Strength, Power Play,
+Penalty Kill, and All Situations categories): For a given season, we calculate the stats for every 
+game for every team. Then for a game n in that season we get all the games before that given
+game (from 1 to n-1) for that season. So for a game played on December 5th between NYR and MTL, 
+we get the stats for all the previous games for each team that season before December 5th. 
+The question now is how do we combine them. Do we just take the mean for each stat and call it a day?</p>
+
+<p>Well, I thought about it and decided to weight them exponentially by the equation e^-.05x, 
+where x is the number of games between the game we are weighting and the game we are currently
+trying to predict. This logic here is similar to how MoneyPuck handles it, thought his weighting 
+system is different. Also, for those interested, I arrived at this value of -.05 through some
+guesswork and trial and error. Below are some examples of the weights:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">math</span>
+	
+    <span class="c"># Get the weights for games 0 - 81</span>
+    <span class="c"># 0 here means when the game being weighed was the previous game (so there are</span>
+    <span class="c"># 0 games in between that game and the current game we are predicting)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">season_weights</span> <span class="o">=</span> <span class="p">[</span><span class="nb">round</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">e</span> <span class="o">**</span> <span class="p">(</span><span class="o">-.</span><span class="mo">05</span> <span class="o">*</span> <span class="n">x</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">82</span><span class="p">)]</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">season_weights</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="mf">1.0</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">season_weights</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span>
+<span class="o">.</span><span class="mi">61</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">season_weights</span><span class="p">[</span><span class="mi">30</span><span class="p">]</span>
+<span class="o">.</span><span class="mi">22</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">season_weights</span><span class="p">[</span><span class="mi">50</span><span class="p">]</span>
+<span class="o">.</span><span class="mi">08</span>
+    <span class="c"># The weight here is how much the first game of the season matters when trying to </span>
+    <span class="c"># predict the last game of the season (82 - 1 = 81). As you can see, for the 82nd game </span>
+    <span class="c"># how a team did in the first game that season doesn't really matter. </span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">season_weights</span><span class="p">[</span><span class="mi">81</span><span class="p">]</span>
+<span class="o">.</span><span class="mo">02</span>
+</code></pre></div></div>
+
+<p>There’s still one issue though. What about the first game of the season? We have no prior
+games there? Also, in general, for games early in the season we don’t have a lot of data to go one.
+So how do we handle this?</p>
+
+<p>I thought about it and decided to include previous season stats when a team has played less
+than 25 games that season. The number 25 is gotten from the fact that a lot of team stats
+peak in predictivity at around the 25 game mark (check out the team section <a href="http://fooledbygrittiness.blogspot.com/2018/03/evaluating-my-shooter-xg-model.html">here</a>).
+The equation we use to weight how much the previous stats matter is e^-.175x, where x is 
+the games played so far that season. Some examples:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">math</span>
+    <span class="c"># x represents how many games were played in that year</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">prev_season_weights</span> <span class="o">=</span> <span class="p">[</span><span class="nb">round</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">e</span> <span class="o">**</span> <span class="p">(</span><span class="o">-.</span><span class="mi">175</span> <span class="o">*</span> <span class="n">x</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">24</span><span class="p">)]</span>
+    <span class="c"># Since we played no games so far, the previous season counts as 100%</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">prev_season_weights</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="mf">1.0</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">prev_season_weights</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+<span class="o">.</span><span class="mi">42</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">prev_season_weights</span><span class="p">[</span><span class="mi">12</span><span class="p">]</span>
+<span class="o">.</span><span class="mi">12</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">prev_season_weights</span><span class="p">[</span><span class="mi">23</span><span class="p">]</span>
+<span class="o">.</span><span class="mo">02</span>
+</code></pre></div></div>
+
+<p>As you can see (and just tell from the equation itself) this decays much quicker than our
+game equation. This is by design as we don’t want last season’s numbers to matter too much. 
+All we need it for is a little boost in the beginning.</p>
+
+<h2 id="player-model">Player Model</h2>
+
+<p>This model contains the following features for each team:</p>
+
+<ul>
+  <li>Game Score Marcels for Forwards 1-12</li>
+  <li>Game Score Marcels for Defensemen 1-6</li>
+  <li>Goalie Marcels for Starter &amp; Backup</li>
+  <li>If the Starting Goalie played in back to back (played in a game the previous day)</li>
+</ul>
+
+<p>To represent a single number value for each skater I decided to use game score developed by 
+<a href="https://hockey-graphs.com/2016/07/13/measuring-single-game-productivity-an-introduction-to-game-score/">Dom Luszczyszyn</a>. 
+Game Score takes a bunch of different stats, weights them, and combines them into one single
+number. The higher the game score the better. Many will point out that this may not be the
+best way of determining the value of a single player, but it has the advantage of being both
+easy to understand and to calculate so I chose it here (Note: Dom has also posted game 
+probabilities in the past using a model which I’m pretty sure uses game score. So it may 
+be similar to what I have here).</p>
+
+<p>So for each game we calculate the game score marcels for each forward and defensemen for 
+both teams only using data from prior to that game.<sup><a href="#footnote2">2</a></sup> The question though is how do we order the skaters in our model. For each team our 
+model takes 20 player inputs (12 forwards, 6 defensemen, 2 goalies) so we need a way of 
+organizing them into some order. To deal with this I chose to follow a similar method to 
+Emmanuel Perry in his previously mentioned model. He chose to rank them in decreasing
+order of time on ice played in the past 5 games by position. Instead of just using the last 
+5 games I chose to create a time on ice projection using a marcels based model.<sup><a href="#footnote3">3</a></sup> 
+I then ranked them in terms of decreasing projected time on ice by forward, defensemen, and the
+goalies (with there being 12 forwards, 6 defensemen, and 2 goalies). So the forward with 
+the 7th highest projected time on ice for his team is slotted in as the 7th of 20 players, the 3rd 
+highest defensemen is the 15th (12+3), and the backup goalie is the 20th.</p>
+
+<p>An issue we run into this is when there isn’t 12 forwards or 6 defensemen dressed for that 
+game. Every now and then teams dress 11 forwards and 7 defensemen or 13 forwards and 5 defensemen
+(also, crucially, the NHL game rosters used to determine which players dressed for that game
+makes mistakes so we see some weird stuff here and there). This isn’t a common occurence
+so I chose to deal with it by simply shuffling the player to the other position. So, if 
+11 forwards were dressed the defensemen with the lowest projected time on ice is placed
+as the 12th forward. Not the cleanest methodology, but I’m sure it’s fine.</p>
+
+<h2 id="fitting-the-sub-models">Fitting the Sub-Models</h2>
+
+<p>So far we have listed the features used for both models, so now is the time to see how we
+are going to use those features to create a model. Before we fit anything though we need to
+get the data in the way we want it.</p>
+
+<p>For both models, we standardized all the relevant features for that model (below is just
+how it is done for the teams).</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">get_team_features</span><span class="p">(</span><span class="n">df</span><span class="p">):</span>
+    <span class="s">"""
+    Get the features for the team model
+
+    :param df: Team df of all features and labels
+
+    :return: features
+    """</span>
+    <span class="n">continuous_vars</span> <span class="o">=</span> <span class="p">[</span><span class="s">'FA60_even_Opponent'</span><span class="p">,</span> <span class="s">'FA60_even_Team'</span><span class="p">,</span>
+                       <span class="s">'FA60_pk_Opponent'</span><span class="p">,</span> <span class="s">'FA60_pk_Team'</span><span class="p">,</span>
+                       <span class="s">'FF60_even_Opponent'</span><span class="p">,</span> <span class="s">'FF60_even_Team'</span><span class="p">,</span>
+                       <span class="s">'FF60_pp_Opponent'</span><span class="p">,</span> <span class="s">'FF60_pp_Team'</span><span class="p">,</span>
+                       <span class="s">'GF60/xGF60_even_Opponent'</span><span class="p">,</span> <span class="s">'GF60/xGF60_even_Team'</span><span class="p">,</span>
+                       <span class="s">'GF60/xGF60_pp_Opponent'</span><span class="p">,</span> <span class="s">'GF60/xGF60_pp_Team'</span><span class="p">,</span>
+                       <span class="s">'PEND60_Opponent'</span><span class="p">,</span> <span class="s">'PEND60_Team'</span><span class="p">,</span>
+                       <span class="s">'PENT60_Opponent'</span><span class="p">,</span> <span class="s">'PENT60_Team'</span><span class="p">,</span>
+                       <span class="s">'xGA60/FA60_even_Opponent'</span><span class="p">,</span> <span class="s">'xGA60/FA60_even_Team'</span><span class="p">,</span>
+                       <span class="s">'xGA60/FA60_pk_Opponent'</span><span class="p">,</span> <span class="s">'xGA60/FA60_pk_Team'</span><span class="p">,</span>
+                       <span class="s">'xGF60/FF60_even_Opponent'</span><span class="p">,</span> <span class="s">'xGF60/FF60_even_Team'</span><span class="p">,</span>
+                       <span class="s">'xGF60/FF60_pp_Opponent'</span><span class="p">,</span> <span class="s">'xGF60/FF60_pp_Team'</span><span class="p">,</span>
+                       <span class="s">'days_rest_home'</span><span class="p">,</span> <span class="s">'days_rest_away'</span><span class="p">,</span>
+                       <span class="s">'home_adj_fsv'</span><span class="p">,</span> <span class="s">'away_adj_fsv'</span><span class="p">]</span>
+
+    <span class="n">non_scaled</span> <span class="o">=</span> <span class="p">[</span><span class="s">'elo_prob'</span><span class="p">]</span>
+    <span class="n">dummies</span> <span class="o">=</span> <span class="p">[</span><span class="s">'home_b2b'</span><span class="p">,</span> <span class="s">'away_b2b'</span><span class="p">]</span>
+
+    <span class="c"># Switch it over -&gt; Don't want to overwrite anything</span>
+    <span class="n">df_scaled</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">continuous_vars</span> <span class="o">+</span> <span class="n">non_scaled</span> <span class="o">+</span> <span class="n">dummies</span><span class="p">]</span>
+
+    <span class="c"># Scale only continuous vars</span>
+    <span class="n">scaler</span> <span class="o">=</span> <span class="n">StandardScaler</span><span class="p">()</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">df_scaled</span><span class="p">[</span><span class="n">continuous_vars</span><span class="p">])</span>
+    <span class="n">df_scaled</span><span class="p">[</span><span class="n">continuous_vars</span><span class="p">]</span> <span class="o">=</span> <span class="n">scaler</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">df_scaled</span><span class="p">[</span><span class="n">continuous_vars</span><span class="p">])</span>
+
+    <span class="c"># Save Scaler</span>
+    <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">scaler</span><span class="p">,</span> <span class="nb">open</span><span class="p">(</span><span class="s">"team_scaler.pkl"</span><span class="p">,</span> <span class="s">'wb'</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">df_scaled</span><span class="p">[</span><span class="n">continuous_vars</span> <span class="o">+</span> <span class="n">non_scaled</span> <span class="o">+</span> <span class="n">dummies</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+</code></pre></div></div>
+
+<p>I then randomly split the data into a training and test set using our full dataset (which as
+mentioned earlier is 2008-2009 to 2017-2018). I chose to use 75% of the data for training and 25% for testing.
+After that we can then fit our model using the training data and test how it does on the training set.</p>
+
+<p>I chose to fit both models using bagged logistic regressions. Well, I didn’t really choose
+that off the bat. I tried a bunch of different techniques for each model (xgBoost, Random
+Forest…etc.) but at the end of the day a bagged logistic regression worked best for both.
+I found that interesting.</p>
+
+<p><a href="https://en.wikipedia.org/wiki/Bootstrap_aggregating">Bagged</a> here means that it uses the 
+concept of Bagging. Bagging is when random subsets of a dataset are used to create many different models. 
+We then use the average prediction of all these models as our final answer. So here we 
+made many different logistic regressions using random subsets of the training data. Then each 
+of these logistic regressions combined (their outputs are averaged) to form one model.</p>
+
+<p>We can now fit and test each model using the code below:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">train_test_clf</span><span class="p">(</span><span class="n">clf_type</span><span class="p">,</span> <span class="n">features</span><span class="p">,</span> <span class="n">labels</span><span class="p">):</span>
+    <span class="s">"""
+    Train the data on specific classifier. Then test how it does. 
+
+    :param clf_type: Type of Classifier we are using
+    :param features: Vars for model
+    :param labels: What we are predicting
+
+    :return: Trained Classifier
+    """</span>
+    <span class="c"># 75/25 Split</span>
+    <span class="n">features_train</span><span class="p">,</span> <span class="n">features_test</span><span class="p">,</span> <span class="n">labels_train</span><span class="p">,</span> <span class="n">labels_test</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=.</span><span class="mi">25</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">36</span><span class="p">)</span>
+
+    <span class="c"># Fix Data</span>
+    <span class="n">features_train</span><span class="p">,</span> <span class="n">labels_train</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">features_train</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">labels_train</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+    
+    <span class="c"># Set up CV</span>
+    <span class="n">param_grid</span> <span class="o">=</span> <span class="p">{</span><span class="s">'n_estimators'</span><span class="p">:</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">22</span><span class="p">,</span> <span class="mi">2</span><span class="p">)}</span>
+    <span class="n">clf_type</span> <span class="o">=</span> <span class="n">BaggingClassifier</span><span class="p">(</span><span class="n">LogisticRegression</span><span class="p">(</span><span class="n">penalty</span><span class="o">=</span><span class="s">'l1'</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="s">'liblinear'</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">36</span><span class="p">),</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">36</span><span class="p">)</span>
+
+    <span class="c"># Tune hyperparameters</span>
+    <span class="n">cv_clf</span> <span class="o">=</span> <span class="n">GridSearchCV</span><span class="p">(</span><span class="n">estimator</span><span class="o">=</span><span class="n">clf_type</span><span class="p">,</span> <span class="n">param_grid</span><span class="o">=</span><span class="n">param_grid</span><span class="p">,</span> <span class="n">cv</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    
+    <span class="c"># Actually fit model</span>
+    <span class="n">cv_clf</span> <span class="o">=</span> <span class="n">cv_clf_type</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">features_train</span><span class="p">,</span> <span class="n">labels_train</span><span class="p">)</span>
+    
+    <span class="c"># Evaluate how the model performs on the etst set</span>
+    <span class="n">test_probs</span> <span class="o">=</span> <span class="n">clf</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">features_test</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">"Log Loss: "</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">log_loss</span><span class="p">(</span><span class="n">labels_test</span><span class="p">,</span> <span class="n">test_probs</span><span class="p">),</span> <span class="mi">4</span><span class="p">))</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">"Accuracy:"</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">accuracy_score</span><span class="p">(</span><span class="n">labels_test</span><span class="p">,</span> <span class="p">[</span><span class="nb">round</span><span class="p">(</span><span class="n">prob</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">prob</span> <span class="ow">in</span> <span class="n">test_probs</span><span class="p">]),</span> <span class="mi">4</span><span class="p">))</span>
+
+</code></pre></div></div>
+
+<p>This function can fit both the player and team models but, as mentioned before, we want to combine
+their outputs into one model. Each by themself is okay, but the best way to handle this 
+is to leverage the strength of both models and combine them into one.</p>
+
+<h2 id="meta-classifier">Meta-Classifier</h2>
+
+<p>To fit the meta-classifier we first need to fit both models. Using this we then generate the
+probabilities for each model for each game in our set. Then, using the same training/testing
+sets as before, we fit a logistic regression with the features being the team and player model
+outputs. A logistic regression will help us get the correct weight for each model relative
+to each other.</p>
+
+<p>So the features (fit using a logistic regression) for the meta-classifier are:</p>
+
+<ul>
+  <li>Home Team Prob% - Team Model</li>
+  <li>Home Team Prob% - Player Model</li>
+</ul>
+
+<p>The evaluation metrics spit out for each model on the Test set are:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Model</th>
+      <th style="text-align: center">Accuracy</th>
+      <th style="text-align: center">Log Loss</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Team</td>
+      <td style="text-align: center">57.97%</td>
+      <td style="text-align: center">.6751</td>
+    </tr>
+    <tr>
+      <td>Player</td>
+      <td style="text-align: center">58.56%</td>
+      <td style="text-align: center">.677</td>
+    </tr>
+    <tr>
+      <td>Meta</td>
+      <td style="text-align: center">58.25%</td>
+      <td style="text-align: center">.6738</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>The main number here is log loss. Accuracy is important but log loss tells us how well
+it does in terms of the probabilities generated and not just whether or not it was correct. 
+And, it clearly is the best for the meta-classifier. Interestingly the team model performs
+better then the player model in log loss (though the opposite is true for accuracy). Each
+model also performs better than just assuming the home team wins (which occurs 54.8% of the
+times).</p>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>In this post we created a model to predict the outcome of a NHL game. Two models were created:
+A model with broader team statistics, and a model focusing on just the players for both teams.
+We then created an ensemble model that fit a logistic regression over the output of both models.
+This final model (and the individual sub-models) perform better than our baseline model (of
+assuming the home team wins).</p>
+
+<p>There are couple of limitations to my model. The first is it is relatively simple (in my opinion).
+There aren’t really too many features used for both sub-models. One could create much larger feature
+sets for both sub-models which may uncover more hidden patterns. This leads into the second
+criticism, mainly being that the performance is nothing to write home about. To my knowledge 
+(please tell me if I’m wrong), the only publicly available game prediction model with the
+test evaluations recorded is Emmanuel Perry’s model. While I don’t think I could ever achieve
+the success of his model (he is very smart), it does highlight some the weaknesses here. Mainly being
+the smaller feature sets and simple model designs. For example, I could have used stacking
+to increase the performance of each sub-model. I thought about it but I chose to keep it 
+simple. It would be a different story if I planned to actually try to gamble using this 
+model but I don’t plan on it.</p>
+
+<p>**The code and data used to create the model (Only the final datasets are up there, the initial
+data used to create everything is too much) for the model can be found <a href="https://github.com/HarryShomer/NHL-Prediction-Model">here</a>.</p>
+
+<p><br /><br /> 
+<strong>Footnotes:</strong> 
+<br /><br />
+<a name="footnote1">1</a>. I chose to weight previous seasons using the weights 5-4-3-2 (with 5
+being the nearest season). I also chose to regress using 2000 shots. 
+<br /><br />
+<a name="footnote2">2</a>. For forwards the weights are 12-4-3 and for defensemen it’s 12-5-3.
+Forwards are regressed 540 minutes while for defensemen it’s 660. 
+<br /><br />
+<a name="footnote3">3</a>. For forwards the weights are 9-1-0 and for defensemen it’s 17-2-0.
+Forwards are regressed 370 minutes while for defensemen it’s 710. 
+<br /><br /></p>
+
+
+  </div><a class="u-url" href="/2018/09/21/nhl-game-prediction-model.html" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Harry Shomer</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list"><li><a class="u-email" href="mailto:Harryshomer@gmail.com">Harryshomer@gmail.com</a></li></ul>
+      </div>
+
+      <div class="footer-col footer-col-2"><ul class="social-media-list"><li><a href="https://github.com/HarryShomer"><svg class="svg-icon"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg> <span class="username">HarryShomer</span></a></li></ul>
+</div>
+
+       <div class="footer-col footer-col-3">
+      
+	 <p></p>
+     
+       </div>
+    </div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>
