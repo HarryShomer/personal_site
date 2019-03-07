@@ -4,6 +4,13 @@ title: Projects
 permalink: /projects/
 ---
 
+[Sculpture Style Classifier](http://sculpture-app.harryshomer.com)
+================================================
+- Web App in which a user can upload an image of a sculpture and have it classified by style.
+- Returns a bar chart which contains the probabilities of the sculpture belonging to each class.
+- The model was built by fine-tuning the CNN Xception and was done as part of my Senior Thesis. 
+
+
 [OffsideReview.com](http://offsidereview.com/)
 =========================================
 
