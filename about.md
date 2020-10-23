@@ -4,7 +4,5 @@ title: About
 permalink: /about/
 ---
 
-I currently work as a Data Analyst at Hearts & Science. I graduated in 2019 from Brooklyn College (CUNY) with a B.S. in Computer Science. My Senior Honors Thesis was on assessing how well we can classify sculptures by art style using convolutional neural networks (more information can be found [here](http://sculpture-app.harryshomer.com/)). 
-
-If you are interested in some of my work please check out both my [projects page](projects.md) and my posts for a detailed look at the stuff I've worked on.
+I'm currently a PHD student in Computer Science at MSU as part of the [DSE Lab](http://dse.cse.msu.edu/). I graduated in 2019 from Brooklyn College (CUNY) with a B.S. in Computer Science. To see what I'm working on please check out my [github profile](https://github.com/HarryShomer).
 

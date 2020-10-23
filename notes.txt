@@ -1,3 +1,7 @@
 ## Build and preview site
 
 bundle exec jekyll serve
+
+## New packages
+
+Add to _config.yml
